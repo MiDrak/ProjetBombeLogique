@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Interactif: Désamorçage de Bombe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Warm Neutrals / Blueprint (Off-white background, Sky blue accents) -->
+    <!-- Application Structure Plan: J'ai conçu une application de type "guide pas-à-pas". La structure est basée sur un composant "Stepper" de navigation (Étapes 1-5) qui contrôle la visibilité du contenu principal. Chaque étape du tutoriel MD est mappée à une section de contenu distincte. Cette structure a été choisie car un tutoriel est un processus linéaire, et cette conception guide l'utilisateur à travers ce processus de manière claire et ordonnée, évitant la surcharge d'information d'un long document. -->
+    <!-- Visualization & Content Choices: 
+        1. Report Info: Les 5 étapes du tutoriel. Goal: Organiser, Naviguer. Viz/Presentation: Stepper de navigation HTML/Tailwind. Interaction: Clic JS pour masquer/afficher les sections de contenu. Justification: Structure idéale pour un processus linéaire/tutoriel. Library: Vanilla JS.
+        2. Report Info: Instructions de câblage (ex: XNORs vers AND). Goal: Informer, Clarifier. Viz/Presentation: Diagrammes de flux simples construits avec des `div`s, bordures et flexbox Tailwind. Interaction: Statique, purement visuel. Justification: Traduit les instructions textuelles complexes en un schéma visuel simple, sans utiliser de SVG/Canvas, conformément aux contraintes. Library: HTML/Tailwind.
+        3. Report Info: Listes de composants (ex: 4x Inputs, 4x XNORs). Goal: Organiser. Viz/Presentation: Listes de contrôle HTML (checkboxes stylisées). Interaction: Clic (visuel uniquement) pour cocher les éléments. Justification: Rend le suivi des tâches plus interactif et satisfaisant pour l'utilisateur. Library: HTML/CSS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfbf6; /* Warm off-white */
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .step {
+            transition: all 0.3s ease;
+        }
+        .step.active {
+            border-color: #0ea5e9; /* sky-500 */
+            background-color: #f0f9ff; /* sky-50 */
+        }
+        .step.active .step-circle {
+            background-color: #0ea5e9;
+            color: white;
+        }
+        .step.active .step-title {
+            color: #0c4a6e; /* sky-800 */
+        }
+
+        .step-circle {
+            transition: all 0.3s ease;
+        }
+        
+        .circuit-box {
+            @apply border-2 border-slate-600 rounded p-3 text-center font-mono font-semibold bg-white shadow;
+        }
+        .circuit-box-input {
+            @apply border-2 border-green-600 rounded p-3 text-center font-mono font-semibold bg-green-50 text-green-800 shadow;
+        }
+        .circuit-box-output {
+            @apply border-2 border-rose-600 rounded p-3 text-center font-mono font-semibold bg-rose-50 text-rose-800 shadow;
+        }
+        .circuit-box-logic {
+            @apply border-2 border-sky-600 rounded p-3 text-center font-mono font-semibold bg-sky-50 text-sky-800 shadow;
+        }
+        
+        .wire {
+            @apply bg-slate-400;
+            flex-grow: 1;
+        }
+        .wire-v {
+            width: 2px;
+            min-height: 2rem;
+        }
+        .wire-h {
+            height: 2px;
+            min-width: 1rem;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-sky-800">Guide Interactif CircuitVerse</h1>
+            <p class="text-lg text-slate-600 mt-2">Construire le Comparateur de Code (Sujet 5)</p>
+        </header>
+
+        <!-- Stepper Navigation -->
+        <nav class="flex flex-col md:flex-row justify-center space-y-2 md:space-y-0 md:space-x-2 mb-10">
+            <button class="step p-4 rounded-lg border-2 border-transparent text-left flex items-center" data-target="step-1">
+                <div class="step-circle w-10 h-10 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center mr-4">1</div>
+                <div>
+                    <div class="step-title text-sm font-semibold text-slate-500">ÉTAPE 1</div>
+                    <div class="step-title text-lg font-bold text-slate-700">Préparation</div>
+                </div>
+            </button>
+            <div class="flex-grow-0 md:flex-grow flex items-center justify-center md:w-16">
+                 <div class="h-1 w-full md:h-full md:w-1 bg-slate-200"></div>
+            </div>
+            <button class="step p-4 rounded-lg border-2 border-transparent text-left flex items-center" data-target="step-2">
+                <div class="step-circle w-10 h-10 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center mr-4">2</div>
+                <div>
+                    <div class="text-sm font-semibold text-slate-500">ÉTAPE 2</div>
+                    <div class="step-title text-lg font-bold text-slate-700">Logique XNOR</div>
+                </div>
+            </button>
+            <div class="flex-grow-0 md:flex-grow flex items-center justify-center md:w-16">
+                 <div class="h-1 w-full md:h-full md:w-1 bg-slate-200"></div>
+            </div>
+            <button class="step p-4 rounded-lg border-2 border-transparent text-left flex items-center" data-target="step-3">
+                <div class="step-circle w-10 h-10 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center mr-4">3</div>
+                <div>
+                    <div class="text-sm font-semibold text-slate-500">ÉTAPE 3</div>
+                    <div class="step-title text-lg font-bold text-slate-700">Validation AND</div>
+                </div>
+            </button>
+            <div class="flex-grow-0 md:flex-grow flex items-center justify-center md:w-16">
+                 <div class="h-1 w-full md:h-full md:w-1 bg-slate-200"></div>
+            </div>
+            <button class="step p-4 rounded-lg border-2 border-transparent text-left flex items-center" data-target="step-4">
+                <div class="step-circle w-10 h-10 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center mr-4">4</div>
+                <div>
+                    <div class="text-sm font-semibold text-slate-500">ÉTAPE 4</div>
+                    <div class="step-title text-lg font-bold text-slate-700">Sorties LED</div>
+                </div>
+            </button>
+            <div class="flex-grow-0 md:flex-grow flex items-center justify-center md:w-16">
+                 <div class="h-1 w-full md:h-full md:w-1 bg-slate-200"></div>
+            </div>
+            <button class="step p-4 rounded-lg border-2 border-transparent text-left flex items-center" data-target="step-5">
+                <div class="step-circle w-10 h-10 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center mr-4">★</div>
+                <div>
+                    <div class="text-sm font-semibold text-slate-500">ÉTAPE 5</div>
+                    <div class="step-title text-lg font-bold text-slate-700">Bonus</div>
+                </div>
+            </button>
+        </nav>
+
+        <!-- Content Sections -->
+        <main class="bg-white rounded-lg shadow-xl p-6 md:p-10 min-h-[400px]">
+            
+            <!-- Étape 1: Préparation -->
+            <section id="step-1" class="content-section">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">Étape 1: Préparation des Composants</h2>
+                <p class="text-slate-600 mb-6">Commençons par rassembler les pièces de base. Prenez les composants suivants dans le menu de gauche de CircuitVerse.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-slate-800 mb-3">Checklist des Composants</h3>
+                        <ul class="space-y-3">
+                            <li>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                                    <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                                    <span class="ml-3 text-slate-700 font-medium">4x Composants "Input" (Carrés verts)</span>
+                                </label>
+                            </li>
+                            <li>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                                    <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                                    <span class="ml-3 text-slate-700 font-medium">Étiqueter les Inputs (A, B, C, D)</span>
+                                </label>
+                            </li>
+                            <li>
+                                <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                                    <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                                    <span class="ml-3 text-slate-700 font-medium">4x Composants "ConstantVal"</span>
+                                </label>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                        <h4 class="font-semibold text-slate-700 mb-2">Diagramme de l'Étape</h4>
+                        <p class="text-sm text-slate-600 mb-4">Vous devriez avoir ces deux types de composants prêts sur votre feuille :</p>
+                        <div class="flex justify-around items-center h-full">
+                            <div class="circuit-box-input w-28">
+                                Input<br>(ex: Bit A)
+                            </div>
+                            <div class="circuit-box w-28">
+                                ConstantVal<br>(ex: 1)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Étape 2: Logique XNOR -->
+            <section id="step-2" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">Étape 2: La Logique de Comparaison (XNOR)</h2>
+                <p class="text-slate-600 mb-6">Le cœur de notre circuit. La porte **XNOR** (dans "Gates") est la porte de l'égalité. Elle sort 1 si ses deux entrées sont identiques. Nous en avons besoin de 4.</p>
+                
+                <h3 class="text-xl font-semibold text-slate-800 mb-3">Checklist de Câblage</h3>
+                <ul class="space-y-3 mb-6">
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">Placer 4x portes XNOR</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-mono">Input A + Constant(1) &rarr; XNOR 1</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-mono">Input B + Constant(0) &rarr; XNOR 2</span>
+                        </label>
+                    </li>
+                     <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-mono">Input C + Constant(1) &rarr; XNOR 3</span>
+                        </label>
+                    </li>
+                     <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-mono">Input D + Constant(1) &rarr; XNOR 4</span>
+                        </label>
+                    </li>
+                </ul>
+
+                <h4 class="font-semibold text-slate-700 mb-2">Diagramme de Câblage (Exemple pour 1 bit)</h4>
+                <div class="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                    <div class="flex items-center">
+                        <div class="flex flex-col space-y-4">
+                            <div class="circuit-box-input w-28">Input A</div>
+                            <div class="circuit-box w-28">Constant(1)</div>
+                        </div>
+                        <div class="flex items-center mx-4">
+                            <div class="wire-h"></div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="flex-col">
+                                <div class="wire-v h-6"></div>
+                                <div class="wire-v h-6"></div>
+                            </div>
+                            <div class="flex-col -ml-0.5">
+                                <div class="wire-h w-4"></div>
+                                <div class="wire-h w-4 -mt-0.5"></div>
+                            </div>
+                        </div>
+                        <div class="circuit-box-logic w-28">XNOR 1</div>
+                        <div class="wire-h mx-4"></div>
+                        <div class="text-lg font-mono font-bold text-sky-700">Sortie 1</div>
+                    </div>
+                    <p class="text-sm text-slate-600 mt-4">Répétez cette opération 4 fois pour les 4 bits (A, B, C, D) avec les bonnes constantes (1, 0, 1, 1).</p>
+                </div>
+            </section>
+            
+            <!-- Étape 3: Validation AND -->
+            <section id="step-3" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">Étape 3: La Validation Globale (AND)</h2>
+                <p class="text-slate-600 mb-6">Pour désamorcer, TOUTES les comparaisons XNOR doivent être vraies (sortir 1). La porte **AND** (dans "Gates") vérifie cela. Assurez-vous de régler son "Input Size" à 4.</p>
+                
+                <h3 class="text-xl font-semibold text-slate-800 mb-3">Checklist de Câblage</h3>
+                <ul class="space-y-3 mb-6">
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">Placer 1x porte AND</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">Changer "Input Size" à 4</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-mono">Sorties des 4 XNORs &rarr; 4 entrées du AND</span>
+                        </label>
+                    </li>
+                </ul>
+
+                <h4 class="font-semibold text-slate-700 mb-2">Diagramme de Câblage</h4>
+                <div class="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                    <div class="flex items-center">
+                        <div class="flex flex-col space-y-2">
+                            <div class="circuit-box-logic w-28">Sortie XNOR 1</div>
+                            <div class="circuit-box-logic w-28">Sortie XNOR 2</div>
+                            <div class="circuit-box-logic w-28">Sortie XNOR 3</div>
+                            <div class="circuit-box-logic w-28">Sortie XNOR 4</div>
+                        </div>
+                        
+                        <div class="flex items-center mx-4">
+                            <div class="wire-h"></div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="flex-col">
+                                <div class="wire-v h-16"></div>
+                                <div class="wire-v h-16"></div>
+                            </div>
+                            <div class="flex-col -ml-0.5">
+                                <div class="wire-h w-4"></div>
+                                <div class="wire-h w-4 -mt-0.5"></div>
+                                <div class="wire-h w-4 -mt-0.5"></div>
+                                <div class="wire-h w-4 -mt-0.5"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="circuit-box-logic w-28">AND (4)</div>
+                        <div class="wire-h mx-4"></div>
+                        <div class="text-lg font-mono font-bold text-sky-700">Sortie FINALE</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Étape 4: Sorties LED -->
+            <section id="step-4" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">Étape 4: Les Sorties (LEDs)</h2>
+                <p class="text-slate-600 mb-6">Nous avons besoin de deux indicateurs : un vert pour "SAFE" (si la sortie AND est 1) et un rouge pour "ALARM" (si la sortie AND est 0). Pour cela, nous avons besoin d'un inverseur **NOT**.</p>
+                
+                <h3 class="text-xl font-semibold text-slate-800 mb-3">Checklist de Câblage</h3>
+                <ul class="space-y-3 mb-6">
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">Placer 2x "DigitalLED" (dans "Output")</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">Régler une LED en Vert (Label "SAFE")</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">Régler une LED en Rouge (Label "ALARM")</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">Placer 1x porte NOT (dans "Gates")</span>
+                        </label>
+                    </li>
+                </ul>
+
+                <h4 class="font-semibold text-slate-700 mb-2">Diagramme de Câblage</h4>
+                <div class="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                    <div class="flex items-center">
+                        <div class="circuit-box-logic w-32">Sortie AND</div>
+                        <div class="wire-h mx-4"></div>
+                        
+                        <div class="flex flex-col">
+                            <div class="flex items-center mb-4">
+                                <div class="wire-h w-4"></div>
+                                <div class="circuit-box-output w-32 bg-green-50 text-green-800 border-green-600">LED "SAFE"</div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <div class="wire-h w-4"></div>
+                                <div class="circuit-box-logic w-32">NOT</div>
+                                <div class="wire-h w-4"></div>
+                                <div class="circuit-box-output w-32">LED "ALARM"</div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-600 mt-4">La sortie de la porte AND doit se diviser en deux : une branche va directement à la LED verte, l'autre passe par une porte NOT avant d'aller à la LED rouge.</p>
+                </div>
+            </section>
+            
+            <!-- Étape 5: Bonus -->
+            <section id="step-5" class="content-section hidden">
+                <h2 class="text-3xl font-bold text-sky-700 mb-6">Étape 5 (Bonus): Compteur d'Essais</h2>
+                <p class="text-slate-600 mb-6">Pour viser le maximum de points, ajoutez un compteur d'essais qui se bloque après 3 tentatives. Cela utilise des composants séquentiels.</p>
+                
+                <h3 class="text-xl font-semibold text-slate-800 mb-3">Composants Bonus</h3>
+                <ul class="space-y-3 mb-6">
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">1x "Button" (dans "Input") - pour valider l'essai</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">1x "Counter" (dans "Seq")</span>
+                        </label>
+                    </li>
+                    <li>
+                        <label class="flex items-center p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer">
+                            <input type="checkbox" class="h-5 w-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500">
+                            <span class="ml-3 text-slate-700 font-medium">1x "HexDisplay" (dans "Output") - pour voir le compte</span>
+                        </label>
+                    </li>
+                </ul>
+
+                <h4 class="font-semibold text-slate-700 mb-2">Logique du Bonus</h4>
+                <div class="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                    <ul class="list-disc list-inside space-y-2 text-slate-700">
+                        <li>Reliez le **Button** à l'entrée `CLK` (Clock) du **Counter**. Chaque clic est un essai.</li>
+                        <li>Reliez la sortie **"SAFE"** (de votre porte AND) à l'entrée `Reset` du **Counter**. Si le code est bon, le compteur revient à 0.</li>
+                        <li>Reliez les sorties du **Counter** au **HexDisplay** pour voir le nombre d'essais.</li>
+                        <li>(Plus complexe) Utilisez d'autres portes pour détecter quand le compteur atteint `3` (binaire 0011) et bloquer le système.</li>
+                    </ul>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navButtons = document.querySelectorAll('.step');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            function showPage(targetId) {
+                contentSections.forEach(section => {
+                    if (section.id === targetId) {
+                        section.classList.remove('hidden');
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                });
+
+                navButtons.forEach(button => {
+                    if (button.dataset.target === targetId) {
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                });
+            }
+
+            navButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const targetId = e.currentTarget.dataset.target;
+                    showPage(targetId);
+                });
+            });
+
+            // Afficher la première étape par défaut
+            showPage('step-1');
+        });
+    </script>
+</body>
+</html>
